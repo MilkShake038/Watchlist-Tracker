@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watchlist Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root,[data-theme=light]{--bg:#f8fafc;--panel:#fff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--accent:#2563eb;--on:#fff}
+[data-theme=dark]{--bg:#16181d;--panel:#21242b;--text:#e8eaee;--muted:#9aa1ad;--line:#33373f;--accent:#60a5fa;--on:#0b1220}
+[data-theme=cinema]{--bg:#1a1816;--panel:#262320;--text:#f1e9dc;--muted:#a89c8a;--line:#3b362f;--accent:#f5a623;--on:#1a1100}
+[data-theme=matcha]{--bg:#eef3ee;--panel:#f8fbf7;--text:#243228;--muted:#62756a;--line:#d3dfd5;--accent:#5f8a6a;--on:#fff}
+[data-theme=berry]{--bg:#fbf4ec;--panel:#fffaf4;--text:#3d1f33;--muted:#8a6577;--line:#ecd9d0;--accent:#8b3a62;--on:#fff}
+[data-theme=neon]{--bg:#0b0b1a;--panel:#14142b;--text:#e6e8ff;--muted:#8d90c0;--line:#2a2a52;--accent:#22d3ee;--on:#04101a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.hin{max-width:1100px;margin:0 auto;padding:14px 20px;display:flex;gap:14px;align-items:center}
+h1{font-size:1.2rem;margin:0;white-space:nowrap}
+textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;resize:vertical}
+input[type=text],input[type=search],input[type=number],select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+#search{flex:1;min-width:0}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+.btn.danger:hover{border-color:#dc2626;color:#dc2626}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{max-width:1100px;margin:0 auto;padding:18px 20px 60px}
+.filters{display:grid;gap:8px;margin-bottom:16px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.row b{width:100px;color:var(--muted);font-weight:500}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:3px 13px;cursor:pointer}
+.pill.on{background:var(--accent);color:var(--on);border-color:var(--accent)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:14px}
+.card{border-radius:12px;padding:14px;border:1px solid rgba(0,0,0,.12);display:flex;flex-direction:column;gap:8px;color:#111827}
+.card h3{margin:0;font-size:1.05rem}
+.card small{color:#374151}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.15);border-radius:6px;padding:0 8px;font-size:.78rem;color:#111827}
+.card .btn{background:rgba(255,255,255,.7);color:#111827;border-color:rgba(0,0,0,.2);padding:4px 10px}
+.acts{display:flex;justify-content:space-between;margin-top:auto}
+.empty{color:var(--muted);text-align:center;padding:40px 0;grid-column:1/-1}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;width:min(560px,94vw);max-height:92vh}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600}
+.mb{padding:16px 18px;display:grid;gap:14px}
+.mb label.l{font-weight:600;display:block;margin-bottom:4px}
+.opts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.opts label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.box{border:1px dashed var(--line);border-radius:10px;padding:12px;display:grid;gap:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hide{display:none!important}
+.theme{display:flex;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.crow{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+.crow span{width:70px}
+.crow input{width:44px;height:30px;border:none;background:none;padding:0}
+.foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.site-footer{max-width:1100px;margin:28px auto 0;padding:22px 20px 34px;border-top:1px solid var(--line);text-align:center;color:var(--muted)}
+.footer-note{max-width:760px;margin:0 auto 16px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-align:left}
+.footer-note strong{display:block;color:var(--text);margin-bottom:4px}
+.footer-note p{margin:0;font-size:.9rem;line-height:1.6}
+.kofi-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;background:var(--accent);color:var(--on);font-weight:700;text-decoration:none;transition:transform .2s,filter .2s}
+.kofi-link:hover{filter:brightness(.96);transform:translateY(-1px)}
+.footer-credit{font-size:.82rem;margin:12px 0 0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--on);padding:8px 16px;border-radius:8px;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar label{display:flex;gap:6px;align-items:center;color:var(--muted)}.bar select{width:auto}
+.card{position:relative}
+.poster{width:100%;height:160px;object-fit:cover;border-radius:8px;background:rgba(0,0,0,.08)}
+.stars{color:#b45309;letter-spacing:2px}
+.star{background:none;border:none;font-size:1.7rem;line-height:1;cursor:pointer;color:var(--line);padding:0 2px}.star.on{color:#f59e0b}
+.thought{position:absolute;z-index:2;max-width:72%;padding:8px 24px 8px 14px;border-radius:24px;font-size:.85rem;line-height:1.3;color:#1f2937;
+ background:var(--fill);border:2px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.18);cursor:grab;touch-action:none;user-select:none;overflow-wrap:anywhere}
+.thought.drag{cursor:grabbing;box-shadow:0 6px 14px rgba(0,0,0,.28)}
+.thought::before,.thought::after{content:"";position:absolute;border-radius:50%;background:var(--fill);border:2px solid var(--line)}
+.thought::before{width:11px;height:11px;left:14px;bottom:-14px}.thought::after{width:6px;height:6px;left:7px;bottom:-24px}
+.thought .tx{position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#374151;font-size:.8rem;line-height:1;padding:0;cursor:pointer}
+.thought.pv{position:relative;display:inline-block;cursor:default;margin-bottom:26px;max-width:100%}
+.sw{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.sw1{width:28px;height:28px;border-radius:50%;border:2px solid #94a3b8;cursor:pointer;padding:0}.sw1.on{outline:3px solid var(--accent)}
+@media(max-width:560px){.hin{flex-wrap:wrap}h1{width:100%}.row b{width:100%}.two{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <h1>🎬 Watchlist Tracker</h1>
+  <input type="search" id="search" placeholder="Search title…" aria-label="Search title">
+  <button class="btn" id="openSet">⚙️ Settings</button>
+</div></header>
+<main>
+  <div class="filters">
+    <div class="row" data-f="status"><b>Watch status</b></div>
+    <div class="row" data-f="type"><b>Type</b></div>
+    <div class="row" data-f="release"><b>Release</b></div>
+  </div>
+  <div class="bar"><button class="btn pri" id="add">+ Add new title</button>
+    <label>Genre <select id="genreF"></select></label>
+    <label>Sort <select id="sortF"><option value="added">Newest added</option><option value="az">Title A–Z</option><option value="za">Title Z–A</option><option value="rhi">Rating: high → low</option><option value="rlo">Rating: low → high</option></select></label></div>
+  <div id="grid"></div>
+</main>
+<footer class="site-footer">
+  <div class="footer-note">
+    <strong>💾 Your data, your device</strong>
+    <p>Your titles, posters and thought clouds are stored locally in this browser. They are not uploaded or synced across devices. Use the JSON backup in Settings to keep a copy or move everything to another device, and keep that file somewhere safe!</p>
+  </div>
+  <a class="kofi-link" href="https://ko-fi.com/milkshake38" target="_blank" rel="noopener noreferrer">☕ Support me on Ko-fi</a>
+  <p class="footer-credit">For binge-watchers like us 🍿 (just one more episode, promise)</p>
+</footer>
+
+<dialog id="m">
+  <form id="f" style="display:contents" onsubmit="return false">
+  <div class="mh"><span id="mt">Add watchlist entry</span><button type="button" class="btn" data-close aria-label="Close">✕</button></div>
+  <div class="mb">
+    <div><label class="l" for="title">Title</label><input type="text" id="title" required placeholder="e.g., Jujutsu Kaisen"></div>
+    <div><label class="l" for="alt">Alternate title <small style="color:var(--muted);font-weight:400">(optional)</small></label><input type="text" id="alt" placeholder="e.g., 呪術廻戦 or another name"></div>
+    <div><span class="l">Content type</span><div class="opts" id="typeOpts"></div></div>
+    <div><span class="l">Watch status</span><div class="opts" id="statusOpts"></div></div>
+    <div><span class="l">Genres <small style="color:var(--muted);font-weight:400">(optional)</small></span><div class="opts" id="gOpts"></div>
+      <div class="opts" style="margin-top:8px"><input type="text" id="gNew" placeholder="Add your own genre" style="max-width:200px"><button type="button" class="btn" id="gAdd">Add</button></div></div>
+    <div><span class="l">Rating <small style="color:var(--muted);font-weight:400">(optional)</small></span><div class="opts" id="starOpts"></div></div>
+    <div><span class="l">Poster <small style="color:var(--muted);font-weight:400">(optional)</small></span>
+      <div class="opts"><button type="button" class="btn" id="pBtn">🖼️ Upload image</button><input type="file" id="pFile" accept="image/*" class="hide">
+      <input type="text" id="pUrl" placeholder="…or paste an image link (https://)" style="flex:1;min-width:180px"></div>
+      <div class="opts" id="pPrev" style="margin-top:8px"></div></div>
+    <div class="box" id="epi">
+      <div class="two">
+        <div><label class="l" for="seasons">Total seasons</label><input type="number" id="seasons" min="0"></div>
+        <div><label class="l" for="eps">Total episodes</label><input type="number" id="eps" min="0"></div>
+      </div>
+      <div><span class="l">Release status</span><div class="opts" id="relOpts"></div></div>
+      <div><button type="button" class="btn" id="progBtn">+ Add watch progress (optional)</button>
+        <div id="progWrap" class="hide" style="margin-top:8px"><label class="l" for="prog">How far have you watched? <small style="color:var(--muted);font-weight:400">(optional)</small></label><input type="text" id="prog" placeholder="e.g., Season 2, Episode 14 (or 14/23)"></div></div>
+    </div>
+  </div>
+  <div class="foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn pri" id="save">💾 Save entry</button></div>
+  </form>
+</dialog>
+
+<dialog id="s">
+  <div class="mh"><span>⚙️ Tracker settings</span><button class="btn" data-close aria-label="Close">✕</button></div>
+  <div class="mb">
+    <div><span class="l">App theme</span><div id="themes" style="display:grid;gap:6px"></div></div>
+    <div><span class="l">Card colors by watch status</span><div id="colors"></div></div>
+    <div><span class="l">Import &amp; backup</span>
+      <div class="opts">
+        <button class="btn" id="bImp">📊 Import CSV / Excel</button><button class="btn" id="bExp">📤 Export CSV</button>
+        <button class="btn" id="bJson">💾 JSON backup</button><button class="btn" id="bRes">📥 Restore JSON</button>
+        <button class="btn danger" id="bClr">🗑️ Clear all</button>
+      </div>
+      <input type="file" id="fImp" accept=".csv,.xlsx,.xls" class="hide"><input type="file" id="fRes" accept=".json" class="hide">
+    </div>
+  </div>
+</dialog>
+<dialog id="th" style="width:min(420px,94vw)">
+  <div class="mh"><span>☁️ Thought cloud</span><button class="btn" data-close aria-label="Close">✕</button></div>
+  <div class="mb">
+    <div><label class="l" for="tt">Your thought <small style="color:var(--muted);font-weight:400">(<span id="tc">0</span>/80)</small></label>
+      <textarea id="tt" maxlength="80" rows="3" placeholder="e.g., Will definitely rewatch"></textarea></div>
+    <div><button type="button" class="btn" id="palBtn">🎨 Colors</button>
+      <div id="pal" class="hide" style="margin-top:8px"><small>Cloud</small><div class="sw" id="swF"></div><small>Lining</small><div class="sw" id="swL"></div></div></div>
+    <div class="thought pv" id="prev"><span></span></div>
+  </div>
+  <div class="foot"><button class="btn danger hide" id="thDel">Remove</button><button class="btn" data-close>Cancel</button><button class="btn pri" id="thSave">Save</button></div>
+</dialog>
+<dialog id="cf" style="width:min(380px,92vw)">
+  <div class="mb"><p id="cfMsg" style="margin:0"></p></div>
+  <div class="foot"><button class="btn" id="cfNo">Cancel</button><button class="btn pri" id="cfYes">Delete</button></div>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const STATUS=["Watching","Planned","Watched","Dropped"], TYPES=["Movie","Anime","Web Series","Custom"], REL=["Releasing","Completed"];
+const DEF={Watching:"#DBEAFE",Planned:"#E5E7EB",Watched:"#DCFCE7",Dropped:"#FEE2E2"};
+const GENRES=["Action","Adventure","Comedy","Drama","Fantasy","Horror","Mystery","Romance","Sci-Fi","Slice of Life","Thriller","Sports"];
+const PF=["#FFFFFF","#FEF9C3","#FCE7F3","#E0F2FE","#EDE9FE","#DCFCE7","#FFEDD5"], PL=["#CBD5E1","#FCD34D","#F9A8D4","#7DD3FC","#C4B5FD","#86EFAC","#FDBA74"];
+const THEMES=[["light","☀️ Default Light","Crisp, bright classic daylight"],["dark","🌙 Default Dark","Clean, low-glare dark"],["cinema","🎞️ Cinema Dark","Charcoal & warm amber"],["matcha","🍵 Matcha & Mist","Sage, pale mint & fog"],["berry","🫐 Velvet Berry","Plum, dusty rose & cream"],["neon","🌌 Midnight Neon","Indigo-black, cyan & violet"]];
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}};
+let items=load("wl.items",[]), colors={...DEF,...load("wl.colors",{})}, theme=load("wl.theme","light");
+let flt={status:"All",type:"All",release:"All",genre:"All"}, editId=null, sort=load("wl.sort","added");
+const save=()=>{const ok=store("wl.items",items);store("wl.colors",colors);store("wl.theme",theme);if(!ok)toast("Storage is full. Remove some posters or export a backup.")};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function ask(msg,yes){$("#cfMsg").textContent=msg;const d=$("#cf");
+  $("#cfNo").onclick=()=>d.close();$("#cfYes").onclick=()=>{d.close();yes()};d.showModal()}
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),2200)}
+const isEpi=t=>t!=="Movie";
+
+// filters
+$$(".filters .row").forEach(r=>{const k=r.dataset.f,vals=["All",...(k==="status"?STATUS:k==="type"?TYPES:REL)];
+  vals.forEach(v=>{const b=document.createElement("button");b.className="pill"+(v==="All"?" on":"");b.textContent=v;b.dataset.k=k;b.dataset.v=v;
+    b.onclick=()=>{flt[k]=v;$$(".pill",r).forEach(p=>p.classList.toggle("on",p===b));render()};r.append(b)})});
+$("#search").oninput=render;
+
+const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
+const hex=(c,d)=>/^#[0-9a-f]{6}$/i.test(c)?c:d;
+const setPos=(b,x,y)=>{b.style.left=x*100+"%";b.style.top=y*100+"%";b.style.transform=`translate(-${x*100}%,-${y*100}%)`};
+function bubble(i){const t=i.t;if(!t)return"";const x=t.x??.03,y=t.y??.03;
+  return `<div class="thought" style="--fill:${hex(t.fill,PF[0])};--line:${hex(t.line,PL[0])};left:${x*100}%;top:${y*100}%;transform:translate(-${x*100}%,-${y*100}%)">${esc(t.text)}<button class="tx" data-a="tx" aria-label="Remove thought">×</button></div>`}
+function render(){
+  const q=$("#search").value.trim().toLowerCase();
+  const gset=[...new Set(items.flatMap(i=>i.genres||[]))].sort((a,b)=>a.localeCompare(b));
+  if(flt.genre!=="All"&&!gset.includes(flt.genre))flt.genre="All";
+  const ok=(i,skip)=>(!q||i.title.toLowerCase().includes(q)||(i.alt||"").toLowerCase().includes(q))
+    &&(skip==="status"||flt.status==="All"||i.status===flt.status)
+    &&(skip==="type"||flt.type==="All"||(flt.type==="Custom"?!TYPES.slice(0,3).includes(i.type):i.type===flt.type))
+    &&(skip==="release"||flt.release==="All"||(isEpi(i.type)&&i.release===flt.release))
+    &&(skip==="genre"||flt.genre==="All"||(i.genres||[]).includes(flt.genre));
+  const has=(i,k,v)=>v==="All"||(k==="status"?i.status===v:k==="type"?(v==="Custom"?!TYPES.slice(0,3).includes(i.type):i.type===v):(isEpi(i.type)&&i.release===v));
+  $$(".filters .pill").forEach(p=>{const k=p.dataset.k,v=p.dataset.v;p.textContent=`${v} (${items.filter(i=>ok(i,k)&&has(i,k,v)).length})`});
+  $("#genreF").innerHTML=`<option value="All">All genres (${items.filter(i=>ok(i,"genre")).length})</option>`+gset.map(g=>`<option value="${esc(g)}">${esc(g)} (${items.filter(i=>ok(i,"genre")&&(i.genres||[]).includes(g)).length})</option>`).join("");
+  $("#genreF").value=flt.genre;$("#sortF").value=sort;
+  const list=items.filter(i=>ok(i));
+  const cmp={az:(a,b)=>a.title.localeCompare(b.title),za:(a,b)=>b.title.localeCompare(a.title),rhi:(a,b)=>!a.rating-!b.rating||b.rating-a.rating||a.title.localeCompare(b.title),rlo:(a,b)=>!a.rating-!b.rating||a.rating-b.rating||a.title.localeCompare(b.title)}[sort];
+  if(cmp)list.sort(cmp);
+  $("#grid").innerHTML=list.length?list.map(i=>{
+    const epi=isEpi(i.type);
+    return `<article class="card" style="background:${colors[i.status]||"#eee"}" data-id="${i.id}">
+      ${i.poster?`<img class="poster" src="${esc(i.poster)}" alt="" loading="lazy" onerror="this.remove()">`:""}
+      <h3>${esc(i.title)}</h3>${i.alt?`<small><i>${esc(i.alt)}</i></small>`:""}
+      <small>${epi?`Seasons: ${i.seasons||"–"} | Episodes: ${i.eps||"–"}`:"Format: Standalone movie"}</small>
+      ${epi&&i.prog?`<small>Watched: ${esc(i.prog)}</small>`:""}
+      ${i.rating?`<span class="stars" aria-label="Rating ${i.rating} of 5">${stars(i.rating)}</span>`:""}
+      <div class="tags"><span class="tag">${esc(i.type)}</span>${epi?`<span class="tag">${i.release}</span>`:""}<span class="tag">${i.status}</span>${(i.genres||[]).map(g=>`<span class="tag">${esc(g)}</span>`).join("")}</div>
+      <div class="acts"><span>${epi&&i.status!=="Dropped"?`<button class="btn" data-a="inc">+1 Ep</button>`:""}</span>
+      <span style="display:flex;gap:6px"><button class="btn" data-a="edit">✏️ Edit</button><button class="btn" data-a="cloud" aria-label="Thought cloud" title="Thought cloud">☁️</button><button class="btn" data-a="del">🗑️ Del</button></span></div>
+      ${bubble(i)}</article>`}).join("")
+    :`<p class="empty">${items.length?"No titles match these filters.":"Your watchlist is empty. Add your first title."}</p>`;
+}
+$("#genreF").onchange=e=>{flt.genre=e.target.value;render()};
+$("#sortF").onchange=e=>{sort=e.target.value;store("wl.sort",sort);render()};
+$("#grid").onclick=e=>{const b=e.target.closest("[data-a]");if(!b)return;const it=items.find(i=>i.id===b.closest(".card").dataset.id);
+  if(b.dataset.a==="edit")openForm(it);
+  if(b.dataset.a==="cloud")openThought(it);
+  if(b.dataset.a==="tx"){delete it.t;save();render();toast("Thought removed");return}
+  if(b.dataset.a==="del")ask(`Delete "${it.title}"?`,()=>{items=items.filter(i=>i.id!==it.id);save();render();toast("Entry deleted")});
+  if(b.dataset.a==="inc"){
+    const nx=nextEp(it.prog||"");
+    if(nx===null)return toast("Already at the last episode");
+    it.prog=nx;
+    if(it.status==="Planned")it.status="Watching";
+    save();render()}};
+
+// +1 Ep: handles "12/23", "Season 3 Episode 3", "S3E3", "S2 Ep 14" and plain numbers
+function nextEp(p){p=p.trim();
+  if(!p)return"Ep 1";
+  let m=/(\d+)(\s*\/\s*)(\d+)/.exec(p);
+  if(m){const n=+m[1],t=+m[3];if(t&&n>=t)return null;return p.replace(m[0],(n+1)+m[2]+m[3])}
+  const re=/((?:^|[^a-z])(?:ep(?:isode)?|e)\.?\s*)(\d+)/gi;let last=null;
+  while((m=re.exec(p)))last=m;
+  if(last){const at=last.index+last[1].length;return p.slice(0,at)+(+last[2]+1)+p.slice(at+last[2].length)}
+  if(/^\d+$/.test(p))return String(+p+1);
+  if(/season|^s\d+$/i.test(p))return p+", Ep 1";
+  return p.replace(/(\d+)(?!.*\d)/,n=>+n+1)}
+
+// form
+function radios(box,name,vals,cur,onch){box.innerHTML=vals.map(v=>`<label><input type="radio" name="${name}" value="${v}"${v===cur?" checked":""}>${v}</label>`).join("")+(name==="type"?`<input type="text" id="custom" placeholder="Custom type" style="width:140px" class="hide">`:"");
+  $$("input[type=radio]",box).forEach(r=>r.onchange=onch)}
+function sync(){const t=$("[name=type]:checked").value;$("#custom").classList.toggle("hide",t!=="Custom");
+  $("#epi").classList.toggle("hide",t==="Movie")}
+function showProg(on){$("#progWrap").classList.toggle("hide",!on);$("#progBtn").textContent=on?"− Hide watch progress":"+ Add watch progress (optional)"}
+$("#progBtn").onclick=()=>showProg($("#progWrap").classList.contains("hide"));
+function openForm(it){editId=it?.id||null;$("#mt").textContent=it?"Edit watchlist entry":"Add watchlist entry";
+  const custom=it&&!TYPES.slice(0,3).includes(it.type);
+  radios($("#typeOpts"),"type",TYPES,custom?"Custom":(it?.type||"Anime"),sync);
+  radios($("#statusOpts"),"status",STATUS,it?.status||"Watching",()=>{});
+  radios($("#relOpts"),"rel",REL,it?.release||"Releasing",sync);
+  $("#custom").value=custom?it.type:"";$("#title").value=it?.title||"";$("#alt").value=it?.alt||"";$("#seasons").value=it?.seasons||"";$("#eps").value=it?.eps||"";$("#prog").value=it?.prog||"";
+  fGenres=new Set(it?.genres||[]);fRating=it?.rating||0;fPoster=it?.poster||"";$("#pUrl").value="";$("#gNew").value="";drawForm();
+  showProg(!!it?.prog);sync();$("#m").showModal();$("#title").focus()}
+$("#add").onclick=()=>openForm();
+$("#save").onclick=()=>{
+  const title=$("#title").value.trim();
+  if(!title){toast("Enter a title first");$("#title").focus();return}
+  let type=$("[name=type]:checked").value;
+  if(type==="Custom")type=$("#custom").value.trim()||"Custom";
+  const gn=$("#gNew").value.trim();if(gn)fGenres.add(gn);const old=items.find(i=>i.id===editId);
+  const o={id:editId||uid(),title,alt:$("#alt").value.trim(),type,status:$("[name=status]:checked").value,seasons:$("#seasons").value,eps:$("#eps").value,
+    release:$("[name=rel]:checked").value,prog:$("#prog").value.trim(),genres:[...fGenres],rating:fRating,poster:fPoster,t:old?.t};
+  if(type==="Movie"){o.release="";o.prog="";o.seasons="";o.eps=""}
+  if(editId)items=items.map(i=>i.id===editId?o:i);else items.unshift(o);
+  save();render();$("#m").close();toast("Entry saved")};
+$$("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
+$$("dialog").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.close()}));
+
+// drag thought
+let drag=null;
+$("#grid").addEventListener("pointerdown",e=>{const b=e.target.closest(".thought");if(!b||e.target.closest(".tx"))return;
+  e.preventDefault();b.setPointerCapture(e.pointerId);const br=b.getBoundingClientRect();
+  drag={b,c:b.closest(".card"),dx:e.clientX-br.left,dy:e.clientY-br.top};b.classList.add("drag")});
+$("#grid").addEventListener("pointermove",e=>{if(!drag)return;const cr=drag.c.getBoundingClientRect(),fx=cr.width-drag.b.offsetWidth,fy=cr.height-drag.b.offsetHeight;
+  const cl=v=>Math.max(0,Math.min(1,v));
+  drag.x=fx>0?cl((e.clientX-drag.dx-cr.left)/fx):0;drag.y=fy>0?cl((e.clientY-drag.dy-cr.top)/fy):0;setPos(drag.b,drag.x,drag.y)});
+const endDrag=()=>{if(!drag)return;if(drag.x!=null){const it=items.find(i=>i.id===drag.c.dataset.id);if(it?.t){it.t.x=drag.x;it.t.y=drag.y;save()}}drag.b.classList.remove("drag");drag=null};
+$("#grid").addEventListener("pointerup",endDrag);$("#grid").addEventListener("pointercancel",endDrag);
+
+// thought dialog
+let thId=null,thFill=PF[0],thLine=PL[0];
+function pv(){const p=$("#prev");p.style.setProperty("--fill",thFill);p.style.setProperty("--line",thLine);
+  $("span",p).textContent=$("#tt").value||"Your thought…";$("#tc").textContent=$("#tt").value.length}
+function sw(box,list,get,set){box.innerHTML=list.map(c=>`<button type="button" class="sw1${c===get()?" on":""}" style="background:${c}" data-c="${c}" aria-label="Color ${c}"></button>`).join("");
+  $$("button",box).forEach(b=>b.onclick=()=>{set(b.dataset.c);sw(box,list,get,set);pv()})}
+function swAll(){sw($("#swF"),PF,()=>thFill,v=>thFill=v);sw($("#swL"),PL,()=>thLine,v=>thLine=v)}
+function openThought(it){thId=it.id;const t=it.t;thFill=hex(t?.fill,PF[0]);thLine=hex(t?.line,PL[0]);
+  $("#tt").value=t?.text||"";$("#thDel").classList.toggle("hide",!t);$("#pal").classList.add("hide");swAll();pv();$("#th").showModal();$("#tt").focus()}
+$("#tt").oninput=pv;$("#palBtn").onclick=()=>$("#pal").classList.toggle("hide");
+$("#thSave").onclick=()=>{const it=items.find(i=>i.id===thId),txt=$("#tt").value.trim();if(!it)return;
+  if(!txt)return toast("Write a thought first");
+  it.t={text:txt,x:it.t?.x??.03,y:it.t?.y??.03,fill:thFill,line:thLine};save();render();$("#th").close();toast("Thought saved")};
+$("#thDel").onclick=()=>{const it=items.find(i=>i.id===thId);if(it){delete it.t;save();render()}$("#th").close();toast("Thought removed")};
+
+// form extras: genres, rating, poster
+let fGenres=new Set(),fRating=0,fPoster="";
+function drawForm(){
+  $("#gOpts").innerHTML=[...new Set([...GENRES,...fGenres])].map(g=>`<button type="button" class="pill${fGenres.has(g)?" on":""}" data-g="${esc(g)}">${esc(g)}</button>`).join("");
+  $$("[data-g]").forEach(b=>b.onclick=()=>{fGenres.has(b.dataset.g)?fGenres.delete(b.dataset.g):fGenres.add(b.dataset.g);drawForm()});
+  $("#starOpts").innerHTML=[1,2,3,4,5].map(n=>`<button type="button" class="star${n<=fRating?" on":""}" data-star="${n}" aria-label="${n} star${n>1?"s":""}">★</button>`).join("")+(fRating?`<button type="button" class="btn" id="noRate">Clear</button>`:"");
+  $$("[data-star]").forEach(b=>b.onclick=()=>{fRating=+b.dataset.star===fRating?0:+b.dataset.star;drawForm()});
+  if($("#noRate"))$("#noRate").onclick=()=>{fRating=0;drawForm()};
+  $("#pPrev").innerHTML=fPoster?`<img src="${esc(fPoster)}" alt="Poster preview" style="height:90px;border-radius:6px"><button type="button" class="btn" id="noPoster">Remove poster</button>`:"";
+  if($("#noPoster"))$("#noPoster").onclick=()=>{fPoster="";drawForm()}}
+function addGenre(){const v=$("#gNew").value.trim();if(v){fGenres.add(v);$("#gNew").value="";drawForm()}}
+$("#gAdd").onclick=addGenre;$("#gNew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addGenre()}};
+$("#pBtn").onclick=()=>$("#pFile").click();
+$("#pFile").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,360/im.width,540/im.height),c=document.createElement("canvas");
+    c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);fPoster=c.toDataURL("image/jpeg",.8);drawForm()};
+    im.onerror=()=>toast("Couldn't read that image");im.src=rd.result};rd.readAsDataURL(f)};
+$("#pUrl").onchange=()=>{const v=$("#pUrl").value.trim();if(/^https?:\/\//i.test(v)){fPoster=v;$("#pUrl").value="";drawForm()}else if(v)toast("Image links must start with http")};
+
+// settings
+function applyTheme(){document.documentElement.dataset.theme=theme}
+function buildSettings(){
+  $("#themes").innerHTML=THEMES.map(([k,n,d])=>`<label class="theme"><input type="radio" name="th" value="${k}"${k===theme?" checked":""}><span><b>${n}</b> — ${d}</span></label>`).join("");
+  $$("[name=th]").forEach(r=>r.onchange=()=>{theme=r.value;applyTheme();save()});
+  $("#colors").innerHTML=STATUS.map(s=>`<div class="crow"><span>${s}</span><input type="color" data-s="${s}" value="${colors[s]}" aria-label="${s} color"><code>${colors[s]}</code><button class="btn" data-r="${s}">Reset</button></div>`).join("");
+  $$("[data-s]").forEach(i=>i.oninput=()=>{colors[i.dataset.s]=i.value;i.nextElementSibling.textContent=i.value;save();render()});
+  $$("[data-r]").forEach(b=>b.onclick=()=>{colors[b.dataset.r]=DEF[b.dataset.r];save();buildSettings();render()})}
+$("#openSet").onclick=()=>{buildSettings();$("#s").showModal()};
+
+// export / import
+function download(name,text,mime){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+const HEAD=["Title","Alternate Title","Type","Seasons","Episodes","Release Status","Watch Status","Progress","Genres","Rating","Poster"];
+const csvCell=v=>{v=String(v??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v};
+$("#bExp").onclick=()=>{if(!items.length)return toast("Nothing to export yet");
+  download("watchlist.csv",[HEAD.join(","),...items.map(i=>[i.title,i.alt,i.type,i.seasons,i.eps,i.release,i.status,i.prog,(i.genres||[]).join("; "),i.rating||"",/^https?:/.test(i.poster||"")?i.poster:""].map(csvCell).join(","))].join("\n"),"text/csv")};
+$("#bJson").onclick=()=>download("watchlist-backup.json",JSON.stringify({items,colors,theme},null,2),"application/json");
+$("#bRes").onclick=()=>$("#fRes").click();
+$("#fRes").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!Array.isArray(d.items))throw 0;
+    items=d.items.map(i=>({...i,id:i.id||uid()}));colors={...DEF,...d.colors};if(d.theme)theme=d.theme;applyTheme();save();buildSettings();render();toast("Backup restored")}
+  catch{toast("That file isn't a valid backup")}};
+$("#bClr").onclick=()=>ask("Delete every title? This can't be undone.",()=>{items=[];save();render();toast("Watchlist cleared")});
+function parseCSV(t){const rows=[];let r=[],c="",q=false;t=t.replace(/^\uFEFF/,"");
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch=='"')q=true;else if(ch==","||ch=="\t"){r.push(c);c=""}
+    else if(ch=="\n"||ch=="\r"){if(ch=="\r"&&t[i+1]=="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}
+  if(c||r.length){r.push(c);rows.push(r)}return rows.filter(r=>r.some(x=>x.trim()))}
+const norm=s=>String(s??"").toLowerCase().replace(/[^a-z]/g,"");
+const MAP={title:["title","name","show"],alt:["alternatetitle","alttitle","othertitle","altname"],type:["type","contenttype","category","format"],seasons:["seasons","season","totalseasons"],eps:["episodes","eps","episode","totalepisodes"],release:["releasestatus","release","airing"],status:["watchstatus","status","state"],genres:["genres","genre","tags"],rating:["rating","score","stars"],poster:["poster","image","imageurl","cover"],prog:["progress","watched","currentepisode","notes"]};
+function pick(v,list,def){const n=norm(v);return list.find(x=>norm(x)===n||(n&&norm(x).startsWith(n)))||def}
+function importRows(rows){
+  if(rows.length<2)return toast("No data rows found");
+  const h=rows[0].map(norm),col={};
+  for(const k in MAP)col[k]=h.findIndex(x=>MAP[k].includes(x));
+  if(col.title<0)return toast("Couldn't find a Title column");
+  const seen=new Set(items.map(i=>i.title.toLowerCase()+"|"+i.type.toLowerCase()));let add=0,skip=0;
+  rows.slice(1).forEach(r=>{const g=k=>col[k]>=0?String(r[col[k]]??"").trim():"";const title=g("title");if(!title)return;
+    let tv=g("type"),type=pick(tv,TYPES.slice(0,3),tv||"Anime");if(norm(tv)==="series"||norm(tv)==="tv")type="Web Series";
+    const key=title.toLowerCase()+"|"+type.toLowerCase();if(seen.has(key)){skip++;return}seen.add(key);
+    const o={id:uid(),title,alt:g("alt"),type,seasons:g("seasons"),eps:g("eps"),release:pick(g("release"),REL,"Completed"),status:pick(g("status"),STATUS,"Planned"),prog:g("prog"),
+      genres:g("genres").split(/[;,|]/).map(x=>x.trim()).filter(Boolean),rating:(()=>{let n=parseFloat(g("rating"));if(!(n>0))return 0;if(n>5)n/=2;return Math.min(5,Math.round(n))})(),poster:/^https?:\/\//i.test(g("poster"))?g("poster"):""};
+    if(type==="Movie"){o.release="";o.seasons="";o.eps="";o.prog=""}items.push(o);add++});
+  save();render();toast(`Imported ${add}, skipped ${skip} duplicate${skip===1?"":"s"}`)}
+$("#bImp").onclick=()=>$("#fImp").click();
+$("#fImp").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{if(/\.xlsx?$/i.test(f.name)){
+      if(!window.XLSX)return toast("Excel support didn't load. Save as CSV and try again.");
+      const wb=XLSX.read(await f.arrayBuffer());importRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""}).filter(r=>r.some(x=>String(x).trim())))}
+    else importRows(parseCSV(await f.text()))}
+  catch{toast("Couldn't read that file")}};
+
+applyTheme();render();
+</script>
+</body>
+</html>
